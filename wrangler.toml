@@ -1,6 +1,8 @@
 name = "k9-core-engine"
 main = "src/index.js"
 compatibility_date = "2024-11-23"
+build = { upload = { dir = "./src" } }
+
 routes = [
   { pattern = "k9-digital.com/api/*", zone_name = "k9-digital.com" }
 ]

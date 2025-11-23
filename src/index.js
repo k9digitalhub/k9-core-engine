@@ -1,79 +1,37 @@
-// ===== IMPORTS =====
-import keys from './keys.js';
-import metrics from './metrics.js';
-import partners from './partners.js';
-import tenants from './tenants.js';
-import compute from './compute.js';
-
-// ===== WORKER ENTRY =====
 export default {
   async fetch(request) {
     const url = new URL(request.url);
+    const path = url.pathname;
 
-    // Extract safe JSON body (avoids 1101 crash)
-    let body = {};
-    if (request.method !== 'GET') {
+    // Helper: safe JSON parsing for GET requests
+    async function safeJson(req) {
       try {
-        body = await request.json();
-      } catch (err) {
-        body = {}; // no JSON body provided
+        if (req.headers.get("content-length") === "0") return {};
+        return await req.json();
+      } catch {
+        return {};
       }
     }
 
-    // ===== /api/compute =====
-    if (url.pathname.startsWith('/api/compute')) {
-      const result = compute(body);
-      return json(result);
+    // ---- /api/compute ----
+    if (path.startsWith('/api/compute')) {
+      const input = await safeJson(request);   // <-- FIXED
+      const result = compute(input);
+      return new Response(JSON.stringify(result), { status: 200 });
     }
 
-    // ===== /api/tenants =====
-    if (url.pathname.startsWith('/api/tenants')) {
-      const result = tenants(body);
-      return json(result);
+    // ---- /api/tenants ----
+    if (path.startsWith('/api/tenants')) {
+      const result = tenants();
+      return new Response(JSON.stringify(result), { status: 200 });
     }
 
-    // ===== /api/metrics =====
-    if (url.pathname.startsWith('/api/metrics')) {
-      const result = metrics(body);
-      return json(result);
+    // ---- /api/metrics ----
+    if (path.startsWith('/api/metrics')) {
+      const result = metrics();
+      return new Response(JSON.stringify(result), { status: 200 });
     }
 
-    // ===== /api/partners =====
-    if (url.pathname.startsWith('/api/partners')) {
-      const result = partners(body);
-      return json(result);
-    }
-
-    // ===== /api/keys =====
-    if (url.pathname.startsWith('/api/keys')) {
-      const result = keys(body);
-      return json(result);
-    }
-
-    // ===== DEFAULT FALLBACK =====
-    return new Response(
-      JSON.stringify({
-        status: "ok",
-        engine: "K9 Core Engine Online",
-        message: "Valid endpoints: /api/compute, /api/tenants, /api/metrics, /api/partners, /api/keys"
-      }),
-      { status: 200, headers: defaultHeaders() }
-    );
+    return new Response("K9 Engine Online", { status: 200 });
   }
 };
-
-// ===== HELPERS =====
-function json(obj, status = 200) {
-  return new Response(JSON.stringify(obj), {
-    status,
-    headers: defaultHeaders()
-  });
-}
-
-function defaultHeaders() {
-  return {
-    'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': '*',
-  };
-}
